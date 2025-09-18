@@ -38,3 +38,6 @@ coverage/
 
 # Jest
 .jest/
+
+# copilot instructions
+.copilotConf
