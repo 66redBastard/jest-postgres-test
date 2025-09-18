@@ -1,0 +1,118 @@
+import pkg from "pg";
+import dotenv from "dotenv";
+
+dotenv.config();
+const { Pool } = pkg;
+
+export class DatabaseConnection {
+  constructor() {
+    // Валідуємо environment variables
+    this.validateEnvVars();
+
+    this.pool = new Pool({
+      user: String(process.env.POSTGRES_USER),
+      host: String(process.env.POSTGRES_HOST || "localhost"),
+      database: String(process.env.POSTGRES_DB),
+      password: String(process.env.POSTGRES_PASSWORD), // Форсуємо string
+      port: parseInt(process.env.POSTGRES_PORT) || 5432,
+    });
+
+    console.log("Database config:", {
+      user: process.env.POSTGRES_USER,
+      host: process.env.POSTGRES_HOST || "localhost",
+      database: process.env.POSTGRES_DB,
+      password: process.env.POSTGRES_PASSWORD ? "***" : "UNDEFINED!",
+      port: process.env.POSTGRES_PORT,
+    });
+  }
+
+  validateEnvVars() {
+    const required = ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB"];
+    const missing = required.filter((key) => !process.env[key]);
+
+    if (missing.length > 0) {
+      throw new Error(`Missing environment variables: ${missing.join(", ")}`);
+    }
+
+    // Перевіряємо що пароль це рядок
+    if (
+      typeof process.env.POSTGRES_PASSWORD !== "string" ||
+      process.env.POSTGRES_PASSWORD.length === 0
+    ) {
+      throw new Error("POSTGRES_PASSWORD must be a non-empty string");
+    }
+  }
+
+  async testConnection() {
+    try {
+      const result = await this.pool.query("SELECT NOW() as current_time");
+      return {
+        success: true,
+        timestamp: result.rows[0].current_time,
+        message: "Database connected successfully",
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  async query(text, params = []) {
+    try {
+      const result = await this.pool.query(text, params);
+      return {
+        success: true,
+        rows: result.rows,
+        rowCount: result.rowCount,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  async getUsers() {
+    return await this.query("SELECT * FROM users ORDER BY id");
+  }
+
+  async getUserById(id) {
+    return await this.query("SELECT * FROM users WHERE id = $1", [id]);
+  }
+
+  async createUser(name, email) {
+    return await this.query(
+      "INSERT INTO users (name, email) VALUES ($1, $2) RETURNING *",
+      [name, email]
+    );
+  }
+
+  async getUserOrders(userId) {
+    return await this.query(
+      "SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC",
+      [userId]
+    );
+  }
+
+  async getUsersWithOrders() {
+    return await this.query(`
+            SELECT 
+                u.id,
+                u.name,
+                u.email,
+                COUNT(o.id) as order_count,
+                COALESCE(SUM(o.amount), 0) as total_spent
+            FROM users u
+            LEFT JOIN orders o ON u.id = o.user_id
+            GROUP BY u.id, u.name, u.email
+            ORDER BY u.id
+        `);
+  }
+
+  async close() {
+    await this.pool.end();
+  }
+}

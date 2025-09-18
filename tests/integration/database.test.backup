@@ -1,0 +1,165 @@
+// import { DatabaseConnection } from "../../src/db/PostgresConnection.js";
+// import dotenv from "dotenv";
+
+// dotenv.config();
+
+// describe("PostgreSQL Database Integration Tests", () => {
+//   let db;
+
+//   beforeAll(async () => {
+//     db = new DatabaseConnection();
+//     await ensureDatabaseReady(db);
+//   }, 30000); // Jest timeout
+
+//   afterAll(async () => {
+//     if (db) {
+//       await db.close();
+//     }
+//   });
+
+//   // Utility function with better error handling
+//   async function ensureDatabaseReady(database) {
+//     const maxAttempts = 15;
+//     const baseDelay = 1000;
+
+//     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+//       try {
+//         const result = await database.testConnection();
+
+//         if (result.success) {
+//           console.log(`✅ Database ready (attempt ${attempt}/${maxAttempts})`);
+//           return result;
+//         }
+
+//         console.log(`⚠️  Attempt ${attempt}: ${result.error}`);
+//       } catch (error) {
+//         console.log(`❌ Attempt ${attempt} failed: ${error.message}`);
+//       }
+
+//       if (attempt === maxAttempts) {
+//         throw new Error(`Database not ready after ${maxAttempts} attempts`);
+//       }
+
+//       // Progressive delay: 1s, 2s, 3s, 4s, 5s (max)
+//       const delay = Math.min(baseDelay * attempt, 5000);
+//       await sleep(delay);
+//     }
+//   }
+
+//   // Helper function
+//   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+//   describe("Database Connection", () => {
+//     test("should connect to PostgreSQL successfully", async () => {
+//       const connection = await db.testConnection();
+
+//       expect(connection.success).toBe(true);
+//       expect(connection.timestamp).toBeDefined();
+//       expect(connection.message).toBe("Database connected successfully");
+//     }, 10000); // Individual test timeout
+
+//     test("should have environment variables loaded", () => {
+//       expect(process.env.POSTGRES_USER).toBeDefined();
+//       expect(process.env.POSTGRES_PASSWORD).toBeDefined();
+//       expect(process.env.POSTGRES_DB).toBeDefined();
+//     });
+//   });
+
+//   describe("Users CRUD Operations", () => {
+//     test("should fetch all users", async () => {
+//       const result = await db.getUsers();
+
+//       expect(result.success).toBe(true);
+//       expect(Array.isArray(result.rows)).toBe(true);
+//       expect(result.rows.length).toBeGreaterThanOrEqual(3); // Alice, Bob, Charlie
+
+//       // Check user structure
+//       result.rows.forEach((user) => {
+//         expect(user).toHaveProperty("id");
+//         expect(user).toHaveProperty("name");
+//         expect(user).toHaveProperty("email");
+//         expect(user).toHaveProperty("created_at");
+//       });
+//     });
+
+//     test("should fetch user by ID", async () => {
+//       const result = await db.getUserById(1);
+
+//       expect(result.success).toBe(true);
+//       expect(result.rows).toHaveLength(1);
+
+//       const user = result.rows[0];
+//       expect(user.id).toBe(1);
+//       expect(user.name).toBe("Alice");
+//       expect(user.email).toBe("alice@example.com");
+//     });
+
+//     test("should create new user", async () => {
+//       const testUser = {
+//         name: "Test User",
+//         email: `test-${Date.now()}@example.com`,
+//       };
+
+//       const result = await db.createUser(testUser.name, testUser.email);
+
+//       expect(result.success).toBe(true);
+//       expect(result.rows).toHaveLength(1);
+
+//       const createdUser = result.rows[0];
+//       expect(createdUser.name).toBe(testUser.name);
+//       expect(createdUser.email).toBe(testUser.email);
+//       expect(createdUser.id).toBeDefined();
+//     });
+
+//     test("should handle duplicate email error", async () => {
+//       const result = await db.createUser("Duplicate User", "alice@example.com");
+
+//       expect(result.success).toBe(false);
+//       expect(result.error).toContain("duplicate key value");
+//     });
+//   });
+
+//   describe("Orders Operations", () => {
+//     test("should fetch user orders", async () => {
+//       const result = await db.getUserOrders(1); // Alice's orders
+
+//       expect(result.success).toBe(true);
+//       expect(Array.isArray(result.rows)).toBe(true);
+//       expect(result.rows.length).toBeGreaterThanOrEqual(2); // Laptop, Mouse
+
+//       result.rows.forEach((order) => {
+//         expect(order).toHaveProperty("id");
+//         expect(order).toHaveProperty("user_id");
+//         expect(order).toHaveProperty("product");
+//         expect(order).toHaveProperty("amount");
+//         expect(order.user_id).toBe(1);
+//       });
+//     });
+//   });
+
+//   describe("Complex Queries", () => {
+//     test("should get users with order statistics", async () => {
+//       const result = await db.getUsersWithOrders();
+
+//       expect(result.success).toBe(true);
+//       expect(result.rows.length).toBeGreaterThanOrEqual(3);
+
+//       result.rows.forEach((userStat) => {
+//         expect(userStat).toHaveProperty("id");
+//         expect(userStat).toHaveProperty("name");
+//         expect(userStat).toHaveProperty("email");
+//         expect(userStat).toHaveProperty("order_count");
+//         expect(userStat).toHaveProperty("total_spent");
+
+//         expect(typeof userStat.order_count).toBe("string"); // PostgreSQL returns count as string
+//         expect(typeof userStat.total_spent).toBe("string"); // PostgreSQL returns sum as string
+//       });
+
+//       // Alice should have 2 orders totaling 1225
+//       const alice = result.rows.find((user) => user.name === "Alice");
+//       expect(alice).toBeDefined();
+//       expect(alice.order_count).toBe("2");
+//       expect(alice.total_spent).toBe("1225");
+//     });
+//   });
+// });
